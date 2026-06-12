@@ -215,13 +215,8 @@ export async function getInsights(scope: Scope): Promise<Insight[]> {
     });
   }
 
-  // status from user actions
-  const actions = await db.insightAction.findMany({ where: { personId: { in: scope.personIds } } });
-  const actionMap = new Map(actions.map((a) => [a.ruleCode, a.status]));
-  for (const i of insights) {
-    const st = actionMap.get(i.ruleCode);
-    if (st === "acted" || st === "dismissed") i.status = st;
-  }
+  // status lives client-side in the static demo (src/lib/insightStore.ts);
+  // production persists it server-side (InsightAction table).
 
   // priority: severity rank then ₹ impact
   const sevRank = { critical: 0, warning: 1, opportunity: 2, info: 3 };

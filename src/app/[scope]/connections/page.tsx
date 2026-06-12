@@ -1,8 +1,8 @@
 import { Card } from "@/components/ui";
-import { resolveScope } from "@/lib/data/scope";
+import { resolveScope, scopeParams } from "@/lib/data/scope";
 import { db } from "@/lib/db";
 
-export const dynamic = "force-dynamic";
+export const generateStaticParams = scopeParams;
 
 const PROVIDER_INFO: Record<string, { kind: string; desc: string }> = {
   aa_finvu: { kind: "Account Aggregator", desc: "Banks, deposits, demat — RBI consent framework, daily fetch" },
@@ -13,8 +13,8 @@ const PROVIDER_INFO: Record<string, { kind: string; desc: string }> = {
   manual: { kind: "Manual", desc: "Self-tracked assets — quarterly revaluation nudges" },
 };
 
-async function getConnectionRows(scopeParam?: string) {
-  const scope = await resolveScope(scopeParam);
+async function getConnectionRows(scopeSlug?: string) {
+  const scope = await resolveScope(scopeSlug);
   const connections = await db.connection.findMany({
     where: { personId: { in: scope.personIds } },
     include: { person: true, _count: { select: { accounts: true } } },
@@ -27,13 +27,9 @@ async function getConnectionRows(scopeParam?: string) {
   }));
 }
 
-export default async function ConnectionsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ scope?: string }>;
-}) {
-  const { scope: scopeParam } = await searchParams;
-  const connections = await getConnectionRows(scopeParam);
+export default async function ConnectionsPage({ params }: { params: Promise<{ scope: string }> }) {
+  const { scope: scopeSlug } = await params;
+  const connections = await getConnectionRows(scopeSlug);
 
   return (
     <div className="space-y-5">

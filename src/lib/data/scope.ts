@@ -1,21 +1,25 @@
 import { db } from "../db";
 
 export interface Scope {
-  key: string; // 'family' or person id
+  key: string; // 'family' or person slug (first name, lowercase)
   label: string;
   personIds: string[];
   persons: { id: string; fullName: string; role: string; monthlyIncome: number; dateOfBirth: Date }[];
   familyId: string;
 }
 
+export const personSlug = (fullName: string) => fullName.split(" ")[0].toLowerCase();
+
 export async function resolveScope(scopeParam?: string): Promise<Scope> {
   const family = await db.family.findFirstOrThrow({ include: { persons: true } });
   const persons = family.persons;
   if (scopeParam && scopeParam !== "family") {
-    const p = persons.find((x) => x.id === scopeParam);
+    const p = persons.find(
+      (x) => personSlug(x.fullName) === scopeParam.toLowerCase() || x.id === scopeParam,
+    );
     if (p)
       return {
-        key: p.id,
+        key: personSlug(p.fullName),
         label: p.fullName.split(" ")[0],
         personIds: [p.id],
         persons,
@@ -29,4 +33,10 @@ export async function resolveScope(scopeParam?: string): Promise<Scope> {
     persons,
     familyId: family.id,
   };
+}
+
+/** generateStaticParams source for every /[scope]/ page (static export). */
+export async function scopeParams(): Promise<{ scope: string }[]> {
+  const persons = await db.person.findMany();
+  return [{ scope: "family" }, ...persons.map((p) => ({ scope: personSlug(p.fullName) }))];
 }

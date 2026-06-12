@@ -2,17 +2,13 @@ import { ScoreHistoryChart } from "@/components/charts";
 import { InsightList } from "@/components/InsightList";
 import { Card, CardTitle, ScoreRing } from "@/components/ui";
 import { getBrief, getHealth, getInsights } from "@/lib/data/insights";
-import { resolveScope } from "@/lib/data/scope";
+import { resolveScope, scopeParams } from "@/lib/data/scope";
 
-export const dynamic = "force-dynamic";
+export const generateStaticParams = scopeParams;
 
-export default async function InsightsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ scope?: string }>;
-}) {
-  const { scope: scopeParam } = await searchParams;
-  const scope = await resolveScope(scopeParam);
+export default async function InsightsPage({ params }: { params: Promise<{ scope: string }> }) {
+  const { scope: scopeSlug } = await params;
+  const scope = await resolveScope(scopeSlug);
   const [insights, health, brief] = await Promise.all([
     getInsights(scope),
     getHealth(scope),

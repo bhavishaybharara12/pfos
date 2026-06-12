@@ -2,17 +2,13 @@ import { AmortizationChart } from "@/components/charts";
 import { Money } from "@/components/Money";
 import { Card, ProgressBar } from "@/components/ui";
 import { getLiabilities } from "@/lib/data/liabilities";
-import { resolveScope } from "@/lib/data/scope";
+import { resolveScope, scopeParams } from "@/lib/data/scope";
 
-export const dynamic = "force-dynamic";
+export const generateStaticParams = scopeParams;
 
-export default async function LiabilitiesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ scope?: string }>;
-}) {
-  const { scope: scopeParam } = await searchParams;
-  const scope = await resolveScope(scopeParam);
+export default async function LiabilitiesPage({ params }: { params: Promise<{ scope: string }> }) {
+  const { scope: scopeSlug } = await params;
+  const scope = await resolveScope(scopeSlug);
   const liab = await getLiabilities(scope);
 
   return (

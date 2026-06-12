@@ -2,17 +2,13 @@ import { FanChart } from "@/components/charts";
 import { Money } from "@/components/Money";
 import { Card, CardTitle, ScoreRing } from "@/components/ui";
 import { getRetirement } from "@/lib/data/goals";
-import { resolveScope } from "@/lib/data/scope";
+import { resolveScope, scopeParams } from "@/lib/data/scope";
 
-export const dynamic = "force-dynamic";
+export const generateStaticParams = scopeParams;
 
-export default async function RetirementPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ scope?: string }>;
-}) {
-  const { scope: scopeParam } = await searchParams;
-  const scope = await resolveScope(scopeParam);
+export default async function RetirementPage({ params }: { params: Promise<{ scope: string }> }) {
+  const { scope: scopeSlug } = await params;
+  const scope = await resolveScope(scopeSlug);
   const r = await getRetirement(scope);
 
   return (
@@ -64,7 +60,7 @@ export default async function RetirementPage({
         <CardTitle>Projection fan · 10th–90th percentile</CardTitle>
         <FanChart data={r.plan.mc.fan} target={r.plan.corpusNeeded} />
         <p className="text-[11px] text-ink-faint mt-2">
-          Dashed line = corpus needed. Try levers in <a href="/simulate" className="text-brand">Simulate</a> —
+          Dashed line = corpus needed. Try levers in <a href={`/${scope.key}/simulate`} className="text-brand">Simulate</a> —
           every recommendation is shown, not asserted.
         </p>
       </Card>

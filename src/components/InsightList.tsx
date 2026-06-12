@@ -1,30 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { useState, useSyncExternalStore } from "react";
 import type { Insight } from "@/lib/data/insights";
+import { getActions, getServerActions, setAction, subscribe } from "@/lib/insightStore";
 import { compactINR } from "@/lib/format";
 import { Card, SeverityBadge } from "./ui";
 
 export function InsightList({ insights }: { insights: Insight[] }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState<string | null>(null);
+  const pathname = usePathname();
+  const scopeBase = `/${pathname.split("/").filter(Boolean)[0] ?? "family"}`;
+  const actions = useSyncExternalStore(subscribe, getActions, getServerActions);
   const [showEvidence, setShowEvidence] = useState<string | null>(null);
 
-  const act = async (ruleCode: string, status: "acted" | "dismissed" | "open") => {
-    setBusy(ruleCode);
-    await fetch("/api/insights", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ruleCode, status }),
-    });
-    setBusy(null);
-    router.refresh();
-  };
-
-  const open = insights.filter((i) => i.status === "open");
-  const handled = insights.filter((i) => i.status !== "open");
+  const withStatus = insights.map((i) => ({
+    ...i,
+    status: (actions[i.ruleCode] as Insight["status"]) ?? "open",
+  }));
+  const open = withStatus.filter((i) => i.status === "open");
+  const handled = withStatus.filter((i) => i.status !== "open");
 
   return (
     <div className="space-y-3">
@@ -48,7 +43,7 @@ export function InsightList({ insights }: { insights: Insight[] }) {
               <p className="text-sm text-ink-soft mt-1 leading-relaxed">{i.body}</p>
               <div className="flex items-center gap-3 mt-2">
                 {i.cta && (
-                  <Link href={i.cta.href} className="text-xs font-medium text-brand">
+                  <Link href={`${scopeBase}${i.cta.href}`} className="text-xs font-medium text-brand">
                     {i.cta.label} →
                   </Link>
                 )}
@@ -67,16 +62,14 @@ export function InsightList({ insights }: { insights: Insight[] }) {
             </div>
             <div className="flex flex-col gap-1.5 shrink-0">
               <button
-                disabled={busy === i.ruleCode}
-                onClick={() => act(i.ruleCode, "acted")}
-                className="text-xs px-3 py-1 rounded-md bg-ink text-white disabled:opacity-50"
+                onClick={() => setAction(i.ruleCode, "acted")}
+                className="text-xs px-3 py-1 rounded-md bg-ink text-white"
               >
                 Mark acted
               </button>
               <button
-                disabled={busy === i.ruleCode}
-                onClick={() => act(i.ruleCode, "dismissed")}
-                className="text-xs px-3 py-1 rounded-md border border-line text-ink-soft disabled:opacity-50"
+                onClick={() => setAction(i.ruleCode, "dismissed")}
+                className="text-xs px-3 py-1 rounded-md border border-line text-ink-soft"
               >
                 Dismiss
               </button>
@@ -96,7 +89,7 @@ export function InsightList({ insights }: { insights: Insight[] }) {
                   <span className="text-[10px] uppercase font-semibold mr-2">{i.status}</span>
                   {i.title}
                 </span>
-                <button onClick={() => act(i.ruleCode, "open")} className="text-xs text-brand shrink-0">
+                <button onClick={() => setAction(i.ruleCode, "open")} className="text-xs text-brand shrink-0">
                   Reopen
                 </button>
               </div>
@@ -105,8 +98,8 @@ export function InsightList({ insights }: { insights: Insight[] }) {
         </>
       )}
       <p className="text-[11px] text-ink-faint pt-2">
-        Class E/A educational insights only (pfos/06 SEBI taxonomy) — fund-specific recommendations
-        require RIA registration and ship gated in V2.
+        Class E/A educational insights only (docs/06 SEBI taxonomy) — fund-specific recommendations
+        require RIA registration and ship gated in V2. Act/dismiss state is stored on this device.
       </p>
     </div>
   );

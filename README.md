@@ -1,5 +1,8 @@
 # PFOS — Personal Finance Operating System (MVP implementation)
 
+**Live demo: https://bhavishaybharara12.github.io/pfos/** (static export, deployed via GitHub
+Actions — data is the seeded demo family baked at build time; simulations run in your browser.)
+
 Working implementation of the design package in [`docs/`](docs/README.md) — market research,
 PRD, data & aggregation architecture, engine math, AI copilot design, UX system, and roadmap —
 as a 360° net-worth, planning, and insight platform for Indian household finances.
@@ -39,3 +42,7 @@ Demo family: ~₹2.46Cr net worth, ₹2.9Cr assets / ₹44L debt, 13 months of t
 - **Connectors are seeded, not live** — AA/MF Central/bureau/EPFO integration requires FIU-TSP and partner agreements ([docs/04](docs/04-aggregation-architecture.md)); the `Connection` model, freshness UX, and data-quality scoring are real.
 - **Copilot narration is templated, not LLM** — by design the rules decide and the narration layer is swappable ([docs/06](docs/06-ai-copilot.md)); wire Claude at `getBrief()`/chat with the same numbers-from-tools-only contract.
 - **Monte Carlo is single blended asset** — production uses the multivariate correlated version ([docs/05 §2.2](docs/05-engines.md)).
+- **Hosted demo is a static export** (`STATIC_EXPORT=1 npm run build` → GitHub Pages): scope is a
+  route segment (`/family`, `/arjun`, `/meera`), what-if/purchase simulations run client-side with
+  the same engine package, and insight act/dismiss state lives in `localStorage`. Local `npm run dev`
+  is fully dynamic against the live SQLite DB.

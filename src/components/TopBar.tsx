@@ -1,30 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { usePrivacy } from "./PrivacyProvider";
 
-export function TopBar() {
+const SCOPES = ["family"]; // person slugs appended via props
+
+export function TopBar({ persons }: { persons: { slug: string; name: string }[] }) {
   const pathname = usePathname();
-  const search = useSearchParams();
   const { hidden, toggle } = usePrivacy();
-  const scope = search.get("scope") ?? "family";
-  const [persons, setPersons] = useState<{ id: string; fullName: string }[]>([]);
 
-  useEffect(() => {
-    fetch("/api/persons")
-      .then((r) => r.json())
-      .then(setPersons)
-      .catch(() => {});
-  }, []);
+  const segments = pathname.split("/").filter(Boolean);
+  const known = new Set([...SCOPES, ...persons.map((p) => p.slug)]);
+  const currentScope = known.has(segments[0]) ? segments[0] : "family";
+  const rest = known.has(segments[0]) ? segments.slice(1).join("/") : segments.join("/");
 
-  const pill = (key: string, label: string) => (
+  const pill = (slug: string, label: string) => (
     <Link
-      key={key}
-      href={`${pathname}${key === "family" ? "" : `?scope=${key}`}`}
+      key={slug}
+      href={`/${slug}${rest ? `/${rest}` : ""}`}
       className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-        scope === key ? "bg-ink text-white" : "bg-card border border-line text-ink-soft hover:text-ink"
+        currentScope === slug
+          ? "bg-ink text-white"
+          : "bg-card border border-line text-ink-soft hover:text-ink"
       }`}
     >
       {label}
@@ -35,7 +33,7 @@ export function TopBar() {
     <header className="h-14 border-b border-line bg-card/80 backdrop-blur flex items-center justify-between px-6 sticky top-0 z-10">
       <div className="flex items-center gap-2">
         {pill("family", "Family")}
-        {persons.map((p) => pill(p.id, p.fullName.split(" ")[0]))}
+        {persons.map((p) => pill(p.slug, p.name))}
       </div>
       <div className="flex items-center gap-3">
         <button

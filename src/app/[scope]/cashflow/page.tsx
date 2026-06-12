@@ -2,17 +2,13 @@ import { CashflowBars, CategoryBars } from "@/components/charts";
 import { Money } from "@/components/Money";
 import { Card, CardTitle } from "@/components/ui";
 import { getCashflow } from "@/lib/data/cashflow";
-import { resolveScope } from "@/lib/data/scope";
+import { resolveScope, scopeParams } from "@/lib/data/scope";
 
-export const dynamic = "force-dynamic";
+export const generateStaticParams = scopeParams;
 
-export default async function CashflowPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ scope?: string }>;
-}) {
-  const { scope: scopeParam } = await searchParams;
-  const scope = await resolveScope(scopeParam);
+export default async function CashflowPage({ params }: { params: Promise<{ scope: string }> }) {
+  const { scope: scopeSlug } = await params;
+  const scope = await resolveScope(scopeSlug);
   const cash = await getCashflow(scope);
   const m = cash.lastFull;
 

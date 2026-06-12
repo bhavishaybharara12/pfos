@@ -3,10 +3,10 @@ import { Money } from "@/components/Money";
 import { Card, CardTitle, ConfidenceDot } from "@/components/ui";
 import { getAssetGroups } from "@/lib/data/holdings";
 import { getNetWorth } from "@/lib/data/networth";
-import { resolveScope } from "@/lib/data/scope";
+import { resolveScope, scopeParams } from "@/lib/data/scope";
 import { pct } from "@/lib/format";
 
-export const dynamic = "force-dynamic";
+export const generateStaticParams = scopeParams;
 
 const TYPE_LABEL: Record<string, string> = {
   mf_folio: "Mutual Funds",
@@ -22,13 +22,9 @@ const TYPE_LABEL: Record<string, string> = {
   gold_jewellery: "Gold",
 };
 
-export default async function AssetsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ scope?: string }>;
-}) {
-  const { scope: scopeParam } = await searchParams;
-  const scope = await resolveScope(scopeParam);
+export default async function AssetsPage({ params }: { params: Promise<{ scope: string }> }) {
+  const { scope: scopeSlug } = await params;
+  const scope = await resolveScope(scopeSlug);
   const [groups, nw] = await Promise.all([getAssetGroups(scope), getNetWorth(scope)]);
   const total = groups.reduce((s, g) => s + g.value, 0);
 

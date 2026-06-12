@@ -1,18 +1,14 @@
 import { Money } from "@/components/Money";
 import { Card, ProgressBar } from "@/components/ui";
 import { getGoals } from "@/lib/data/goals";
-import { resolveScope } from "@/lib/data/scope";
+import { resolveScope, scopeParams } from "@/lib/data/scope";
 import { formatDate } from "@/lib/format";
 
-export const dynamic = "force-dynamic";
+export const generateStaticParams = scopeParams;
 
-export default async function GoalsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ scope?: string }>;
-}) {
-  const { scope: scopeParam } = await searchParams;
-  const scope = await resolveScope(scopeParam);
+export default async function GoalsPage({ params }: { params: Promise<{ scope: string }> }) {
+  const { scope: scopeSlug } = await params;
+  const scope = await resolveScope(scopeSlug);
   const goals = await getGoals(scope);
 
   return (
