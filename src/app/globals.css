@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/* "Ledger" design tokens — pfos/07-ux-design.md §9 */
+@theme {
+  --color-paper: #fafaf8;
+  --color-card: #ffffff;
+  --color-ink: #16191d;
+  --color-ink-soft: #5a6472;
+  --color-ink-faint: #8a93a0;
+  --color-brand: #1e5ae8;
+  --color-brand-soft: #e8eefc;
+  --color-gain: #0e8a4d;
+  --color-gain-soft: #e6f4ec;
+  --color-loss: #c5362b;
+  --color-loss-soft: #faebe9;
+  --color-warn: #b7791f;
+  --color-warn-soft: #faf3e3;
+  --color-line: #e7e7e2;
+  --color-chart-1: #4c7df0;
+  --color-chart-2: #2ba8a0;
+  --color-chart-3: #e8a33d;
+  --color-chart-4: #8b6fd0;
+  --color-chart-5: #d06f8b;
+  --color-chart-6: #5aa85a;
+  --color-chart-7: #7a8699;
+  --color-chart-8: #a07850;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+/* money is always tabular */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* privacy mode blur */
+.privacy-on .money {
+  filter: blur(7px);
+  user-select: none;
+}

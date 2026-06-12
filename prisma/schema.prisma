@@ -1,0 +1,212 @@
+// PFOS MVP schema — simplified from pfos/03-data-model.md.
+// SQLite for the runnable demo (no enums/Json/Numeric); production target is
+// PostgreSQL 16 + TimescaleDB with the full DDL (RLS, bitemporal valuations, vault tokens).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Family {
+  id           String  @id @default(cuid())
+  name         String
+  baseCurrency String  @default("INR")
+  persons      Person[]
+  goals        Goal[]
+}
+
+model Person {
+  id            String   @id @default(cuid())
+  familyId      String
+  family        Family   @relation(fields: [familyId], references: [id])
+  fullName      String
+  role          String   @default("owner") // owner | partner | member
+  dateOfBirth   DateTime
+  riskProfile   String   @default("moderate")
+  employment    String   @default("salaried")
+  monthlyIncome Float    @default(0)
+  accounts      Account[]
+  connections   Connection[]
+  creditReports CreditReport[]
+  policies      InsurancePolicy[]
+  scores        HealthScoreSnapshot[]
+  insightActions InsightAction[]
+}
+
+model Connection {
+  id          String    @id @default(cuid())
+  personId    String
+  person      Person    @relation(fields: [personId], references: [id])
+  provider    String    // aa_finvu | mf_central | cibil | broker_zerodha | epfo | manual
+  label       String
+  status      String    @default("active") // active | error | expired
+  lastFetchAt DateTime?
+  dataQuality Int       @default(80)
+  accounts    Account[]
+}
+
+model Instrument {
+  id           String  @id @default(cuid())
+  type         String  // mutual_fund | stock | etf | ...
+  name         String
+  symbol       String?
+  isin         String?
+  assetClass   String  // equity | debt | gold | real_estate | cash | alternative | liability
+  subClass     String?
+  sector       String?
+  geography    String  @default("IN")
+  expenseRatio Float?
+  positions    Position[]
+  transactions Transaction[]
+}
+
+model Account {
+  id           String   @id @default(cuid())
+  personId     String
+  person       Person   @relation(fields: [personId], references: [id])
+  connectionId String?
+  connection   Connection? @relation(fields: [connectionId], references: [id])
+  class        String   // asset | liability
+  type         String   // savings_account | mf_folio | demat | epf | real_estate | home_loan | credit_card | ...
+  displayName  String
+  institution  String?
+  assetClass   String   // dominant class for allocation: equity|debt|gold|real_estate|cash|alternative|liability
+  confidence   Int      @default(100) // valuation confidence (physical assets < 100)
+  openedOn     DateTime?
+  meta         String?  // JSON string (ESOP grant detail etc.)
+  positions    Position[]
+  valuations   AccountValuation[]
+  transactions Transaction[]
+  loanDetail   LoanDetail?
+  cardDetail   CreditCardDetail?
+  goalMaps     GoalAccountMap[]
+}
+
+model Position {
+  id             String     @id @default(cuid())
+  accountId      String
+  account        Account    @relation(fields: [accountId], references: [id])
+  instrumentId   String
+  instrument     Instrument @relation(fields: [instrumentId], references: [id])
+  quantity       Float
+  avgCost        Float?
+  investedAmount Float?
+  currentPrice   Float
+  @@unique([accountId, instrumentId])
+}
+
+model AccountValuation {
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id])
+  asOfDate  DateTime
+  value     Float    // +ve assets, -ve liabilities
+  invested  Float?
+  @@id([accountId, asOfDate])
+}
+
+model Transaction {
+  id           String      @id @default(cuid())
+  accountId    String
+  account      Account     @relation(fields: [accountId], references: [id])
+  instrumentId String?
+  instrument   Instrument? @relation(fields: [instrumentId], references: [id])
+  type         String      // buy|sip|salary_credit|card_spend|emi_principal|emi_interest|interest|card_payment|...
+  txnDate      DateTime
+  amount       Float       // signed, account perspective
+  quantity     Float?
+  description  String?
+  merchant     String?
+  category     String?     // Housing|Food|Transportation|Travel|Entertainment|Education|Insurance|Investments|Lifestyle|Income|Transfer
+  @@index([accountId, txnDate])
+}
+
+model LoanDetail {
+  accountId       String  @id
+  account         Account @relation(fields: [accountId], references: [id])
+  principal       Float
+  outstanding     Float
+  interestRate    Float   // annual %
+  rateType        String  @default("floating")
+  emi             Float
+  emiDay          Int     @default(5)
+  startDate       DateTime
+  tenureMonths    Int
+  remainingMonths Int
+}
+
+model CreditCardDetail {
+  accountId   String  @id
+  account     Account @relation(fields: [accountId], references: [id])
+  creditLimit Float
+  apr         Float
+  statementDay Int
+  dueDay      Int
+}
+
+model CreditReport {
+  id           String   @id @default(cuid())
+  personId     String
+  person       Person   @relation(fields: [personId], references: [id])
+  bureau       String
+  score        Int
+  pulledAt     DateTime
+  utilization  Float
+  activeLoans  Int
+  enquiries6m  Int
+}
+
+model InsurancePolicy {
+  id            String   @id @default(cuid())
+  personId      String
+  person        Person   @relation(fields: [personId], references: [id])
+  type          String   // term_life | health | motor
+  insurer       String
+  sumAssured    Float
+  annualPremium Float
+  renewalDate   DateTime?
+}
+
+model Goal {
+  id            String   @id @default(cuid())
+  familyId      String
+  family        Family   @relation(fields: [familyId], references: [id])
+  type          String   // retirement | emergency_fund | child_education | house | vehicle | vacation | custom
+  name          String
+  targetAmount  Float    // in today's money
+  targetDate    DateTime
+  inflationRate Float    @default(0.06)
+  priority      Int      @default(3)
+  monthlySip    Float    @default(0) // SIP currently mapped to this goal
+  mappings      GoalAccountMap[]
+}
+
+model GoalAccountMap {
+  goalId        String
+  goal          Goal    @relation(fields: [goalId], references: [id])
+  accountId     String
+  account       Account @relation(fields: [accountId], references: [id])
+  allocationPct Float   @default(100)
+  @@id([goalId, accountId])
+}
+
+model InsightAction {
+  personId String
+  person   Person @relation(fields: [personId], references: [id])
+  ruleCode String
+  status   String // acted | dismissed | snoozed
+  at       DateTime @default(now())
+  @@id([personId, ruleCode])
+}
+
+model HealthScoreSnapshot {
+  personId   String
+  person     Person @relation(fields: [personId], references: [id])
+  runDate    DateTime
+  total      Int
+  components String // JSON: {savingsRate:{score,weight},...}
+  @@id([personId, runDate])
+}
